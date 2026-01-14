@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบ POS ร้านอาหาร</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <h1>🍽️ ระบบ POS ร้านอาหาร</h1>
+            <span id="userDisplay" style="margin-left: 20px; color: #ddd;"></span>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-btn" onclick="openReports()">📊 รายงาน</button>
+            <button class="nav-btn" onclick="openAnalytics()">📈 Analytics</button>
+            <button class="nav-btn" onclick="openHistory()">📋 ประวัติ</button>
+            <button class="nav-btn" onclick="openCustomerList()">👥 ลูกค้า</button>
+            <button class="nav-btn" onclick="openDrawerManagement()">💰 ยอดเงินกลับ</button>
+            <button class="nav-btn" onclick="openPromotion()">🎁 โปรโมชัน</button>
+            <button class="nav-btn" onclick="openKitchenTimer()">⏱️ ไทม์เมอร์</button>
+            <button class="nav-btn" onclick="openStaffChat()">💬 Chat</button>
+            <button class="nav-btn" onclick="openSalesGoal()">🎯 เป้าหมาย</button>
+            <button class="nav-btn" onclick="openTableMap()">🪑 โต๊ะ</button>
+            <button class="nav-btn" onclick="openStock()">📦 สต็อก</button>
+            <button class="nav-btn" onclick="openReceipts()">🧾 ใบเสร็จ</button>
+            <button class="nav-btn" onclick="openDrawer()">💰 ลิ้นชัก</button>
+            <button class="nav-btn" onclick="openRefund()">↩️ คืนเงิน</button>
+            <button class="nav-btn" onclick="openEmployee()">👨‍💼 พนักงาน</button>
+            <button class="nav-btn" onclick="openSettings()">⚙️ ตั้งค่า</button>
+            <button class="nav-btn" onclick="openMenuEditor()">📋 เมนู</button>
+            <button class="nav-btn" onclick="openSalesStaff()">📊 ยอดขาย</button>
+            <button class="nav-btn" onclick="openExpense()">💸 ค่าใช้จ่าย</button>
+            <button class="nav-btn" onclick="exportData()">💾 ส่งออก</button>
+            <button class="nav-btn" onclick="toggleDarkMode()">🌙 โหมด</button>
+            <button class="nav-btn" onclick="logout()">🚪 ออกจากระบบ</button>
+        </div>
+    </nav>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal" style="display: flex; align-items: center; justify-content: center;">
+        <div class="modal-content" style="max-width: 300px;">
+            <h2>🔐 เข้าสู่ระบบ</h2>
+            <div class="login-form">
+                <input type="text" id="loginUser" placeholder="ชื่อผู้ใช้" class="login-input">
+                <input type="password" id="loginPass" placeholder="รหัสผ่าน" class="login-input">
+                <select id="loginRole" class="login-input">
+                    <option value="staff">พนักงาน</option>
+                    <option value="admin">เจ้าของ</option>
+                </select>
+                <button class="btn btn-success" onclick="loginUser()">เข้าสู่ระบบ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- ส่วนเมนู -->
+        <div class="menu-section">
+            <h2>เมนูอาหาร</h2>
+            <!-- Barcode Scanner -->
+            <div class="barcode-section">
+                <input type="text" id="barcodeInput" placeholder="สแกนบาร์โค้ด..." class="barcode-input">
+                <button class="btn-barcode" onclick="toggleBarcodeCamera()">📷 เปิดกล้อง</button>
+                <button class="btn-barcode" onclick="generateQRCode()">📱 QR Menu</button>
+                <div id="barcodeCamera" class="barcode-camera" style="display:none;">
+                    <video id="barcodeVideo"></video>
+                </div>
+            </div>
+            <div class="menu-tabs">
+                <button class="tab-btn active" data-category="all">ทั้งหมด</button>
+                <button class="tab-btn" data-category="rice">ข้าวและอื่นๆ</button>
+                <button class="tab-btn" data-category="noodles">เส้นหลากหลาย</button>
+                <button class="tab-btn" data-category="drinks">เครื่องดื่ม</button>
+                <button class="tab-btn" data-category="dessert">ของหวาน</button>
+            </div>
+            <div class="menu-grid" id="menuGrid">
+                <!-- เมนูจะถูกแสดงที่นี่ -->
+            </div>
+            
+            <!-- Trending Menu -->
+            <div class="trending-section">
+                <h4>🔥 เมนูขายดี</h4>
+                <div class="trending-list" id="trendingList"></div>
+            </div>
+        </div>
+
+        <!-- ส่วนออเดอร์ -->
+        <div class="order-section">
+            <h2>ออเดอร์ - โต๊ะ #<input type="number" id="tableNumber" min="1" value="1" class="table-input"></h2>
+            <div class="order-list" id="orderList">
+                <p class="empty-message">ยังไม่มีสินค้า</p>
+            </div>
+            
+            <!-- สินค้าโปรด -->
+            <div class="favorites-section">
+                <h4>⭐ สินค้าโปรด</h4>
+                <div class="favorites-list" id="favoritesList"></div>
+            </div>
+
+            <!-- หมายเหตุ -->
+            <div class="notes-section">
+                <textarea id="orderNotes" placeholder="หมายเหตุ: เช่น ไม่มีพริก, ชาชุ่ม..." class="order-notes"></textarea>
+            </div>
+
+            <!-- โปรโมชัน -->
+            <div class="promo-section">
+                <label>รหัสโปร: <input type="text" id="promoCode" placeholder="PROMO001" class="promo-input"></label>
+                <label>สมาชิก: <input type="text" id="memberCode" placeholder="MEM001" class="promo-input"></label>
+            </div>
+
+            <!-- ลดราคา -->
+            <div class="member-discount">
+                <input type="checkbox" id="isDebt"> ขายตัดบัญชี
+            </div>
+
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>ยอดรวม:</span>
+                    <span id="totalAmount">0.00</span>
+                </div>
+                <div class="summary-row">
+                    <span>ส่วนลด (%):</span>
+                    <input type="number" id="discountPercent" min="0" max="100" value="0" class="discount-input">
+                </div>
+                <div class="summary-row">
+                    <span>ส่วนลดเพิ่ม:</span>
+                    <input type="number" id="extraDiscount" min="0" value="0" class="discount-input">
+                </div>
+                <div class="summary-row total">
+                    <span>รวมสุทธิ:</span>
+                    <span id="netAmount">0.00</span>
+                </div>
+                <button class="btn btn-success" onclick="checkout()">💳 ชำระเงิน</button>
+                <button class="btn btn-info" onclick="toggleFavorite()">⭐ เพิ่มโปรด</button>
+                <button class="btn btn-warning" onclick="undoLastItem()">↩️ ยกเลิกรายการ</button>
+                <button class="btn btn-danger" onclick="clearOrder()">🗑️ ยกเลิกทั้งหมด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal ประวัติ -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeHistory()">&times;</span>
+            <h2>📋 ประวัติการขาย</h2>
+            <input type="date" id="historyDate" class="history-filter">
+            <div id="historyList" class="history-list"></div>
+        </div>
+    </div>
+
+    <!-- Modal รายงาน -->
+    <div id="reportsModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeReports()">&times;</span>
+            <h2>📊 รายงานประจำวัน</h2>
+            <div class="report-section">
+                <div class="report-item">
+                    <span>ยอดขายรวม:</span>
+                    <span id="reportTotal" class="report-value">0.00</span>
+                </div>
+                <div class="report-item">
+                    <span>จำนวนออเดอร์:</span>
+                    <span id="reportOrders" class="report-value">0</span>
+                </div>
+                <div class="report-item">
+                    <span>ส่วนลดรวม:</span>
+                    <span id="reportDiscount" class="report-value">0.00</span>
+                </div>
+            </div>
+            <h3>รายละเอียดเมนูที่ขายได้</h3>
+            <div id="reportDetails" class="report-details"></div>
+            <button class="btn btn-success" onclick="printReport()">🖨️ พิมพ์รายงาน</button>
+        </div>
+    </div>
+
+    <!-- Modal ยอดเงิน -->
+    <div id="drawerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDrawerManagement()">&times;</span>
+            <h2>💰 ยอดเงินเปิด-ปิด</h2>
+            <div class="drawer-section">
+                <label>เงินเปิดกลับ (เริ่มต้น): 
+                    <input type="number" id="openingAmount" min="0" step="0.01" value="0" class="drawer-input">
+                </label>
+                <label>เงินปิดกลับ (ท้ายวัน):
+                    <input type="number" id="closingAmount" min="0" step="0.01" class="drawer-input">
+                </label>
+                <div class="drawer-result">
+                    <p>เงินที่ควรได้: <strong id="expectedAmount">0.00</strong> บาท</p>
+                    <p>เงินที่มี: <strong id="actualAmount">0.00</strong> บาท</p>
+                    <p>ผลต่าง: <strong id="differenceAmount">0.00</strong> บาท</p>
+                </div>
+                <button class="btn btn-success" onclick="calculateDrawer()">คำนวณ</button>
+                <button class="btn btn-secondary" onclick="closeDrawerManagement()">ปิด</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal โปรโมชัน -->
+    <div id="promotionModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closePromotion()">&times;</span>
+            <h2>🎁 จัดการโปรโมชัน</h2>
+            <div class="promo-list">
+                <div class="promo-form">
+                    <input type="text" id="promoName" placeholder="ชื่อโปรโมชัน" class="promo-input">
+                    <input type="text" id="promoCodeInput" placeholder="รหัส" class="promo-input">
+                    <input type="number" id="promoDiscount" placeholder="ลดราคา (%)" class="promo-input">
+                    <input type="date" id="promoDate" class="promo-input">
+                    <button class="btn btn-success" onclick="addPromotion()">+ เพิ่มโปรโมชัน</button>
+                </div>
+                <div id="promoList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal QR Payment -->
+    <div id="qrPaymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeQRPayment()">&times;</span>
+            <h2>📱 QR Code ชำระเงิน</h2>
+            <p>ให้ลูกค้าสแกนเพื่อชำระเงิน</p>
+            <div id="qrPaymentCode" style="text-align: center;"></div>
+            <p>ยอดชำระ: <strong id="qrAmount">0.00</strong> บาท</p>
+        </div>
+    </div>
+
+    <!-- Modal Kitchen Timer -->
+    <div id="kitchenTimerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeKitchenTimer()">&times;</span>
+            <h2>⏱️ ไทม์เมอร์เตรียมอาหาร</h2>
+            <div class="timer-list" id="timerList"></div>
+            <div class="timer-form">
+                <input type="text" id="timerDish" placeholder="ชื่อเมนู" class="timer-input">
+                <input type="number" id="timerMinutes" placeholder="นาที" class="timer-input" min="1" value="5">
+                <button class="btn btn-success" onclick="addTimer()">+ เพิ่มไทม์เมอร์</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Staff Chat -->
+    <div id="staffChatModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeStaffChat()">&times;</span>
+            <h2>💬 Chat พนักงาน</h2>
+            <div id="chatMessages" class="chat-messages"></div>
+            <div class="chat-input">
+                <input type="text" id="chatMessage" placeholder="พิมพ์ข้อความ..." class="chat-input-box">
+                <button class="btn btn-success" onclick="sendChatMessage()">ส่ง</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Analytics -->
+    <div id="analyticsModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeAnalytics()">&times;</span>
+            <h2>📈 Analytics</h2>
+            <canvas id="salesChart"></canvas>
+            <canvas id="categoryChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Modal Customer List -->
+    <div id="customerListModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeCustomerList()">&times;</span>
+            <h2>👥 ประวัติลูกค้า</h2>
+            <input type="text" id="customerSearch" placeholder="ค้นหารหัสสมาชิก..." class="search-input" oninput="searchCustomer()">
+            <div id="customerList" class="customer-list"></div>
+        </div>
+    </div>
+
+    <!-- Modal Sales Goal -->
+    <div id="salesGoalModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSalesGoal()">&times;</span>
+            <h2>🎯 เป้าหมายขาย</h2>
+            <div class="goal-form">
+                <label>เป้าหมายรายวัน (บาท): <input type="number" id="goalAmount" class="goal-input"></label>
+                <button class="btn btn-success" onclick="setSalesGoal()">ตั้งเป้า</button>
+            </div>
+            <div id="goalProgress" class="goal-progress"></div>
+        </div>
+    </div>
+
+    <!-- Menu Editor Modal -->
+    <div id="menuEditorModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeMenuEditor()">&times;</span>
+            <h2>📋 จัดการเมนู</h2>
+            <div style="margin-bottom: 10px;">
+                <button class="btn btn-success" onclick="addMenuItemForm()">➕ เพิ่มเมนู</button>
+            </div>
+            <div id="menuList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; max-height: 400px; overflow-y: auto;"></div>
+            <div id="addMenuSection" style="display: none; margin-top: 15px; border-top: 1px solid #ddd; padding-top: 15px;">
+                <h3>เพิ่มเมนูใหม่</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="text" id="newMenuName" placeholder="ชื่อเมนู" style="padding: 8px;">
+                    <input type="text" id="newMenuCategory" placeholder="หมวดหมู่" style="padding: 8px;">
+                    <input type="number" id="newMenuPrice" placeholder="ราคา" style="padding: 8px;">
+                    <input type="text" id="newMenuEmoji" placeholder="อิโมจิ" style="padding: 8px;">
+                </div>
+                <button class="btn btn-success" onclick="saveNewMenuItem()" style="margin-top: 10px;">บันทึก</button>
+                <button class="btn btn-secondary" onclick="cancelAddMenu()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sales by Staff Modal -->
+    <div id="salesStaffModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeSalesStaff()">&times;</span>
+            <h2>📊 ยอดขายตามพนักงาน</h2>
+            <div id="staffSalesList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;"></div>
+        </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expenseModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeExpense()">&times;</span>
+            <h2>💸 บันทึกค่าใช้จ่าย</h2>
+            <div style="margin-bottom: 10px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <input type="text" id="expenseCategory" placeholder="หมวดหมู่ (น้ำแข็ง/ไฟ/แก๊ส)" style="padding: 8px;">
+                    <input type="number" id="expenseAmount" placeholder="จำนวนเงิน" style="padding: 8px;">
+                    <input type="date" id="expenseDate" style="padding: 8px;">
+                </div>
+                <textarea id="expenseNote" placeholder="หมายเหตุ" style="width: 100%; padding: 8px; height: 60px; margin-top: 10px;"></textarea>
+                <button class="btn btn-success" onclick="saveExpense()" style="margin-top: 10px;">บันทึก</button>
+            </div>
+            <div id="expenseList" style="max-height: 300px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <div id="checkoutModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCheckout()">&times;</span>
+            <h2>ชำระเงิน</h2>
+            <div style="margin-bottom: 10px;">
+                <label>ประเภท: 
+                    <select id="orderType" style="padding: 5px;">
+                        <option value="dine-in">รับประทานในที่</option>
+                        <option value="takeaway">ไปรับ</option>
+                        <option value="delivery">ส่ง</option>
+                    </select>
+                </label>
+            </div>
+            <div class="checkout-details">
+                <p>ยอดรวม: <strong id="subtotalAmount">0.00</strong> บาท</p>
+                <p>ส่วนลด: <strong id="discountAmount">0.00</strong> บาท</p>
+                <p>ภาษี+บริการ: <strong id="taxAmount">0.00</strong> บาท</p>
+                <p>รวมสุทธิ: <strong id="modalTotal">0.00</strong> บาท</p>
+                <label>เงินจำนวน: <input type="number" id="paymentAmount" min="0" step="0.01"></label>
+                <p id="changeAmount" class="change-info"></p>
+                <button class="quick-pay" onclick="quickPay(1000)">1000</button>
+                <button class="quick-pay" onclick="quickPay(500)">500</button>
+                <button class="quick-pay" onclick="quickPay(100)">100</button>
+            </div>
+            <button class="btn btn-success" onclick="completePayment()">✓ ยืนยันการชำระเงิน</button>
+            <button class="btn btn-info" onclick="printReceipt()">🖨️ พิมพ์</button>
+            <button class="btn btn-info" onclick="generateQRPayment()">📱 QR Payment</button>
+            <button class="btn btn-secondary" onclick="closeCheckout()">ปิด</button>
+        </div>
+    </div>
+
+    <!-- Table Map Modal -->
+    <div id="tableMapModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeTableMap()">&times;</span>
+            <h2>แผนผังโต๊ะ</h2>
+            <div id="tableGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <!-- Stock Modal -->
+    <div id="stockModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeStock()">&times;</span>
+            <h2>จัดการสต็อก</h2>
+            <input type="text" id="stockSearch" placeholder="ค้นหาเมนู..." onkeyup="filterStock()" style="width: 100%; padding: 8px; margin-bottom: 10px;">
+            <div id="stockList" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Receipt History Modal -->
+    <div id="receiptModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeReceipts()">&times;</span>
+            <h2>ประวัติใบเสร็จ</h2>
+            <div id="receiptList" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+    </div>
+
+    <!-- Cash Drawer Modal -->
+    <div id="drawerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDrawer()">&times;</span>
+            <h2>จัดการลิ้นชัก</h2>
+            <div style="margin-bottom: 10px;">
+                <p><strong>สถานะ:</strong> <span id="drawerStatus" style="color: #51cf66; font-weight: bold;">ปิด</span></p>
+                <p><strong>เงินเดือนเปิด:</strong> <span id="openingAmount">0</span> บาท</p>
+                <p><strong>ยอดขายวันนี้:</strong> <span id="todaySales">0</span> บาท</p>
+                <p><strong>คาดการณ์ปิด:</strong> <span id="expectedClosing">0</span> บาท</p>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>เงินเดือนเปิด: <input type="number" id="drawerOpenAmount" placeholder="5000" style="padding: 5px; width: 100%;"></label>
+                <button class="btn btn-success" onclick="openDrawerAction()">📂 เปิดลิ้นชัก</button>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>เงินจริง: <input type="number" id="drawerActualAmount" placeholder="0" style="padding: 5px; width: 100%;"></label>
+                <button class="btn btn-warning" onclick="closeDrawerAction()">📁 ปิดลิ้นชัก</button>
+            </div>
+            <div id="drawerHistory" style="max-height: 200px; overflow-y: auto; margin-top: 10px; border-top: 1px solid #ddd; padding-top: 10px;"></div>
+        </div>
+    </div>
+
+    <!-- Refund Modal -->
+    <div id="refundModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeRefund()">&times;</span>
+            <h2>ระบบคืนเงิน</h2>
+            <div style="margin-bottom: 10px;">
+                <label>เลือกใบเสร็จ: <select id="refundReceiptSelect" style="width: 100%; padding: 8px;"></select></label>
+            </div>
+            <div id="refundDetails" style="border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; min-height: 100px;">
+                <p style="color: #999;">เลือกใบเสร็จเพื่อดูรายละเอียด</p>
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label>เหตุผล: <textarea id="refundReason" placeholder="กรุณาระบุเหตุผล" style="width: 100%; padding: 8px; height: 60px;"></textarea></label>
+            </div>
+            <button class="btn btn-danger" onclick="processRefund()">💸 ยืนยันคืนเงิน</button>
+        </div>
+    </div>
+
+    <!-- Employee Modal -->
+    <div id="employeeModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeEmployee()">&times;</span>
+            <h2>จัดการพนักงาน</h2>
+            <div style="margin-bottom: 10px;">
+                <button class="btn btn-success" onclick="addEmployeeForm()">➕ เพิ่มพนักงาน</button>
+            </div>
+            <div id="employeeList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px;"></div>
+            <div id="addEmployeeSection" style="display: none; margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;">
+                <h3>เพิ่มพนักงานใหม่</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                    <input type="text" id="newEmpName" placeholder="ชื่อพนักงาน" style="padding: 8px;">
+                    <input type="text" id="newEmpPosition" placeholder="ตำแหน่ง" style="padding: 8px;">
+                    <input type="number" id="newEmpSalary" placeholder="เงินเดือน" style="padding: 8px;">
+                    <input type="date" id="newEmpStartDate" style="padding: 8px;">
+                </div>
+                <button class="btn btn-success" onclick="saveNewEmployee()">บันทึก</button>
+                <button class="btn btn-secondary" onclick="cancelAddEmployee()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content wide">
+            <span class="close" onclick="closeSettings()">&times;</span>
+            <h2>ตั้งค่าระบบ</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <h3>ข้อมูลร้าน</h3>
+                    <label>ชื่อร้าน: <input type="text" id="shopName" placeholder="ชื่อร้านอาหาร" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                    <label>ที่อยู่: <textarea id="shopAddress" placeholder="ที่อยู่" style="width: 100%; padding: 8px; height: 60px; margin-bottom: 10px;"></textarea></label>
+                    <label>เบอร์โทร: <input type="tel" id="shopPhone" placeholder="0812345678" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                    <label>ชื่อเจ้าของ: <input type="text" id="ownerName" placeholder="ชื่อเจ้าของ" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                </div>
+                <div>
+                    <h3>อัตรา & ค่าใช้งาน</h3>
+                    <label>อัตราภาษี (%): <input type="number" id="taxRateSetting" value="7" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                    <label>ค่าบริการ (%): <input type="number" id="serviceChargeSetting" value="0" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                    <label>ลดราคา Default (%): <input type="number" id="defaultDiscount" value="0" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                    <label>สต็อกเตือน (ต่ำกว่า): <input type="number" id="stockWarning" value="5" style="width: 100%; padding: 8px; margin-bottom: 10px;"></label>
+                    <button class="btn btn-success" onclick="saveSettings()">💾 บันทึก</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="script.js"></script>
+    <script src="patch_realshop.js"></script>
+</body>
+</html>
